@@ -1,73 +1,80 @@
-#include <iostream>
 #include <vector>
+#include <iostream>
+#include <math.h>
 #include <algorithm>
+#include <iomanip>
 
 using std::vector;
 
-unsigned int cur = 0;
-
-unsigned int nextRand24(int a_random, int b_random) {
-    cur = cur * a_random + b_random;
-    return cur >> 8;
-}
-
-unsigned int nextRand32(int a_random, int b_random) {
-    unsigned int x_var = nextRand24(a_random, b_random),
-            y_var = nextRand24(a_random, b_random);
-    return (x_var << 8) ^ y_var;
-}
-
-unsigned int RandomSelect(const vector<unsigned int> &sequence, size_t key) {
-    if (sequence.size() > 1) {
-        vector<unsigned int> less;
-        less.reserve(sequence.size());
-        vector<unsigned int> equal;
-        equal.reserve(sequence.size());
-        vector<unsigned int> greater;
-        greater.reserve(sequence.size());
-        size_t mid = rand() % sequence.size();
-        unsigned int pivot = sequence[mid];
-        for (auto elem : sequence) {
-            if (elem < pivot) {
-                less.push_back(elem);
-            } else if (elem == pivot) {
-                equal.push_back(elem);
-            } else {
-                greater.push_back(elem);
-            }
+bool IsFit(const vector<vector<double>> &points_array,
+           const int &kmin, const double &radius) {
+    vector<double> leftends;
+    vector<double> rightends;
+    for (auto &point : points_array) {
+        if (abs(point[1]) <= radius) {
+            double leftelement = point[0] -
+                                 sqrt(abs(std::pow(radius, 2) - std::pow(point[1], 2)));
+            leftends.push_back(leftelement);
+            double rightelement = point[0] +
+                                  sqrt(abs(std::pow(radius, 2) - std::pow(point[1], 2)));
+            rightends.push_back(rightelement);
         }
-        if (key <= less.size()) {
-            return RandomSelect(less, key);
-        } else if (key > equal.size() + less.size()) {
-            return RandomSelect(greater, key - equal.size() - less.size());
-        } else {
-            return equal[0];
-        }
-    } else {
-        return sequence[0];
     }
+    if (static_cast<int>(leftends.size()) < kmin) {
+        return false;
+    }
+    std::sort(leftends.begin(), leftends.end());
+    std::sort(rightends.begin(), rightends.end());
+    size_t left_index = 0;
+    size_t right_index = 0;
+    int res = 0;
+    while ((res < kmin) &&
+           (left_index < leftends.size()) && (right_index < rightends.size())) {
+        if (leftends[left_index] <= rightends[right_index]) {
+            ++res;
+            ++left_index;
+        } else {
+            --res;
+            ++right_index;
+        }
+    }
+    if (res == kmin) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+double MinRadius(const vector<vector<double>> &points_array, const int &kmin) {
+    double minradius = 0;
+    double maxradius = 1415;
+    double midradius = minradius + (maxradius - minradius) / 2;
+    while (maxradius - minradius > 0.0009) {
+        if (IsFit(points_array, kmin, midradius) == false) {
+            minradius = midradius;
+            midradius = minradius + (maxradius - minradius) / 2;
+        } else {
+            maxradius = midradius;
+            midradius = minradius + (maxradius - minradius) / 2;
+        }
+    }
+    return midradius;
 }
 
 int main() {
-    int number;
-    std::cin >> number;
-    int a_random, b_random;
-    std::cin >> a_random >> b_random;
-    vector<unsigned int> houses;
-    houses.reserve(number);
-    for (int index = 0; index < number; ++index) {
-        houses.push_back(nextRand32(a_random, b_random));
-    }
-    int64_t sum = 0;
-    unsigned int ymin = RandomSelect(houses, houses.size() / 2 + 1);
+//    std::cin.tie(nullptr);
+    int number, kmin;
+    std::cin >> number >> kmin;
 
-    for (auto elem : houses) {
-        if (ymin > elem) {
-            sum += ymin - elem;
-        } else {
-            sum += elem - ymin;
+    vector<std::vector<double>> points_array(
+            number, vector<double>(2, 0));
+
+    for (auto &point : points_array) {
+        for (auto &cordinate : point) {
+            std::cin >> cordinate;
         }
     }
-    std::cout << sum;
+    const double &radius = MinRadius(points_array, kmin);
+    std::cout << std::fixed << std::setprecision(6) << radius;
     return 0;
 }

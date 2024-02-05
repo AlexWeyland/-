@@ -1,83 +1,56 @@
-#include <iostream>
 #include <vector>
-#include <math.h>
-
-using std::vector;
-int bigint = 2000000000;
-
-vector<int> Input(const int &len) {
-    vector<int> sequence;
-    sequence.reserve(len);
-    for (int elem = 0; elem < len; ++elem) {
-        int number;
-        std::cin >> number;
-        sequence.push_back(number);
-    }
-    return sequence;
-}
-
-void Merge(const vector<int> &sequence, vector<int> &sequence_sample,
-           const size_t &index, const size_t &scale) {
-    size_t first = index;
-    size_t second = index + scale;
-    size_t num = index;
-    while (first < index + scale && second < index + 2 * scale) {
-        if (sequence[first] <= sequence[second]) {
-            sequence_sample[num] = sequence[first];
-            ++first;
-        } else {
-            sequence_sample[num] = sequence[second];
-            ++second;
-        }
-        ++num;
-    }
-    while (first < index + scale) {
-        sequence_sample[num] = sequence[first];
-        ++first;
-        ++num;
-    }
-    while (second < index + 2 * scale) {
-        sequence_sample[num] = sequence[second];
-        ++second;
-        ++num;
-    }
-}
-
-void Output(const vector<int> &sequence) {
-    for (auto elem : sequence) {
-        std::cout << elem << " ";
-    }
-}
-
-void MergeSort(vector<int> &sequence, const int &size, const int &twopow) {
-    vector<int> sequence_sample;
-    sequence_sample.resize(sequence.size());
-    for (size_t scale = size; scale < sequence.size(); scale *= 2) {
-        for (size_t index = 0; index < sequence.size(); index += 2 * scale) {
-            Merge(sequence, sequence_sample, index, scale);
-        }
-        sequence = sequence_sample;
-    }
-}
+#include <iostream>
 
 int main() {
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(nullptr);
-    int number;
-    int size;
-    std::cin >> number >> size;
-    vector<int> sequence = Input(number * size);
-    int twopow = 0;
-    while (pow(2, twopow) < number) {
-        ++twopow;
+    
+    int numb, mumb, size;
+    std::cin >> numb >> mumb >> size;
+
+    std::vector<std::vector<int> > increase_array(
+            numb,
+            std::vector<int>(size, 0));
+
+    for (auto &array : increase_array) {
+        for (auto &elem : array) {
+            std::cin >> elem;
+        }
     }
-    for (int index = 0; index < (pow(2, twopow) - number) * size; ++index) {
-        sequence.push_back(bigint);
+
+    std::vector<std::vector<int> > decrease_array(
+            mumb,
+            std::vector<int>(size, 0));
+    for (auto &array : decrease_array) {
+        for (auto &elem : array) {
+            std::cin >> elem;
+        }
     }
-    MergeSort(sequence, size, twopow);
-    for (int index = 0; index < (pow(2, twopow) - number) * size; ++index) {
-        sequence.pop_back();
+
+    int number_of_comands;
+    std::cin >> number_of_comands;
+
+
+    for (int konch = 0; konch < number_of_comands; ++konch) {
+        int one, two;
+        std::cin >> one >> two;
+
+        int first = 0;
+        int last = size - 1;
+        while (last - first > 1) {
+            int mid = first + (last - first) / 2;
+            if ((increase_array[one - 1][mid] < decrease_array[two - 1][mid])) {
+                first = mid;
+            } else {
+                last = mid;
+            }
+        }
+        if ((increase_array[one - 1][last] > decrease_array[two - 1][first])) {
+            std::cout << first + 1 << "\n";
+        } else {
+            std::cout << last + 1 << "\n";
+        }
     }
-    Output(sequence);
+
     return 0;
 }
