@@ -1,108 +1,84 @@
-#include <iostream>
 #include <vector>
 #include <algorithm>
-#include <string>
-#include <utility>
+#include <iostream>
+#include <cstdlib>
 
 using std::vector;
-using std::string;
 
-int toomuch = 100000000;
-
-int Distance(const int &first, const int &second, const vector<int> &coordinates) {
-    if (coordinates[second] > coordinates[first]) {
-        return (coordinates[second] - coordinates[first]);
+int64_t GCF(const int64_t &first, const int64_t &second) {
+    int64_t remainder = first % second;
+    if (remainder == 0) {
+        return second;
     } else {
-        return (coordinates[first] - coordinates[second]);
+        return GCF(second, remainder);
     }
 }
 
-int CellCalculate(const int &row, const int &column,
-                  vector<vector<int>> &matrix,
-                  const vector<int> &coordinates,
-                  const vector<int> &lifetime) {
-    int first, second;
-    if (row < column) {
-        if (matrix[row][column - 1] == -57) {
-            first = CellCalculate(row, column - 1, matrix, coordinates, lifetime);
-        } else {
-            first = matrix[row][column - 1];
-        }
-        if (matrix[column - 1][row] == -57) {
-            second = CellCalculate(column - 1, row, matrix, coordinates, lifetime);
-        } else {
-            second = matrix[column - 1][row];
-        }
-        first += Distance(column - 1, column, coordinates);
-        second += Distance(row, column, coordinates);
-        if (std::min(first, second) > lifetime[column]) {
-            matrix[row][column] = toomuch;
-        } else {
-            matrix[row][column] = std::min(first, second);
-        }
-    } else if (row == column) {
-        matrix[row][column] = 0;
-    } else {
-        if (matrix[row][column + 1] == -57) {
-            first = CellCalculate(row, column + 1, matrix, coordinates, lifetime);
-        } else {
-            first = matrix[row][column + 1];
-        }
-        if (matrix[column + 1][row] == -57) {
-            second = CellCalculate(column + 1, row, matrix, coordinates, lifetime);
-        } else {
-            second = matrix[column + 1][row];
-        }
-        first += Distance(column + 1, column, coordinates);
-        second += Distance(row, column, coordinates);
-        if (std::min(first, second) > lifetime[column]) {
-            matrix[row][column] = toomuch;
-        } else {
-            matrix[row][column] = std::min(first, second);
-        }
+void TriangleTransform(vector<int64_t> &triangle) {
+    std::sort(triangle.begin(), triangle.end());
+    int64_t gcf = GCF(triangle[2], GCF(triangle[1], triangle[0]));
+    for (auto &side : triangle) {
+        side = side / gcf;
     }
-    return matrix[row][column];
 }
+
+class FixedSet {
+private:
+    int64_t length_ = 0;
+    int64_t transposition_ = 0;
+    int64_t expansion_ = 0;
+    vector<vector<int64_t>> hash_table_;
+
+public:
+    void Initialize(const int &number) {
+        length_ = 3000017;
+        transposition_ = 1757;
+        expansion_ = 7;
+        int hash_size = 2 * number + 13;
+        hash_table_.resize(hash_size, vector<int64_t>(1, 0));
+    }
+
+    void Add(const vector<int64_t> &triangle) {
+        size_t hash_size = hash_table_.size();
+        int64_t polinom = 17 * triangle[1] + 3 *  triangle[2] + 5 * triangle[0] + 10;
+        size_t function = (std::abs(expansion_ * polinom + transposition_) % length_) % hash_size;
+        hash_table_[function].push_back(triangle[0] + triangle[1] + triangle[2]);
+    }
+
+    bool Contains(const vector<int64_t> &triangle) const {
+        size_t hash_size = hash_table_.size();
+        int64_t polinom = 17 * triangle[1] + 3 * triangle[2] + 5 * triangle[0] + 10;
+        int64_t perimetr = triangle[0] + triangle[1] + triangle[2];
+        size_t function = (std::abs(expansion_ * polinom + transposition_) % length_) % hash_size;
+        for (size_t index = 1; index < hash_table_[function].size(); ++index) {
+            if (hash_table_[function][index] == perimetr) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
 
 int main() {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
     int number;
+    int sum = 0;
     std::cin >> number;
-    vector<int> coordinates;
-    vector<int> lifetime;
-    coordinates.reserve(number);
-    lifetime.reserve(number);
-    vector<std::pair<int, int>> input;
-    input.resize(number);
-    for (int coin = 0; coin < number; ++coin) {
-        int coord, time;
-        std::cin >> coord >> time;
-        input[coin].first = coord;
-        input[coin].second = time;
+    FixedSet triangle_hash;
+    triangle_hash.Initialize(number);
+    for (int index = 0; index < number; ++index) {
+        vector<int64_t> triangle;
+        triangle.resize(3, 0);
+        for (auto &side : triangle) {
+            std::cin >> side;
+        }
+        TriangleTransform(triangle);
+        if (!triangle_hash.Contains(triangle)) {
+            triangle_hash.Add(triangle);
+            ++sum;
+        }
     }
-    std::sort(input.begin(), input.end());
-    for (int coin = 0; coin < number; ++coin) {
-        coordinates.push_back(input[coin].first);
-        lifetime.push_back(input[coin].second);
-    }
-    vector<vector<int> > matrix(
-            number,
-            std::vector<int>(number, -57));
-    for (int diag = 0; diag < number; ++diag) {
-        matrix[diag][diag] = 0;
-    }
-    int first = CellCalculate(0, number - 1, matrix, coordinates, lifetime);
-    if (first > lifetime[number - 1]) {
-        first = toomuch;
-    }
-    int second = CellCalculate(number - 1, 0, matrix, coordinates, lifetime);
-    if (second > lifetime[0]) {
-        second = toomuch;
-    }
-    int result = std::min(first, second);
-    if (result < toomuch) {
-        std::cout << result;
-    } else {
-        std::cout << "No solution";
-    }
+    std::cout << sum;
     return 0;
 }
